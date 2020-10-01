@@ -5,13 +5,12 @@
 #include <netinet/in.h>
 #include <unistd.h>
 #include <pthread.h>
-// #include <signal.h>
-
+#include <signal.h>
 #include <string.h>
 
-#define MAX_CLIENTS 2
+#define MAX_CLIENTS 30
 #define BUFFER_SZ 256
-#define BUFFER_SZ 32
+#define NAME_SZ 32
 
 static _Atomic unsigned int cli_count = 0;
 static int uid = 10;
@@ -21,7 +20,7 @@ typedef struct {
 	struct sockaddr_in address;
 	int sockfd; 
 	int uid;
-	char name[BUFFER_SZ];
+	char name[NAME_SZ];
 } client_t;
 
 void print_client_addr(struct sockaddr_in addr) {
@@ -99,10 +98,10 @@ void send_message(char *s, int uid) {
 	pthread_mutex_unlock(&clients_mutex);
 }
 
-/* handle communication with client */
+/* Handle communication with client */
 void *handle_client(void *arg) {
 	char buff_out[BUFFER_SZ];
-	char name[32];
+	char name[NAME_SZ];
 	int leave_flag = 0;
 
 	cli_count++;
@@ -142,7 +141,6 @@ void *handle_client(void *arg) {
 			printf("ERROR: -1\n");
 			leave_flag = 1;
 		}
-
 		bzero(buff_out, BUFFER_SZ);
 	}
 
@@ -158,16 +156,13 @@ void *handle_client(void *arg) {
 
 int main(int argc, char *argv[]) {
   int sockfd, newsockfd;
-  uint16_t portno;
-  struct sockaddr_in serv_addr, cli_addr;
   int option = 1;
-  // ssize_t n;
   pthread_t tid;
 
   /* Check port number */
   if(argc<2){
     fprintf(stderr, "usage %s hostname port\n", argv[0]);
-    exit(0);
+    return 0;
   }
 
   /* First call to socket() function */
@@ -175,29 +170,31 @@ int main(int argc, char *argv[]) {
 
   if (sockfd < 0) {
     perror("ERROR opening socket");
-    exit(1);
+    return 0;
   }
+
+  struct sockaddr_in serv_addr, cli_addr;
 
   /* Initialize socket structure */
   bzero((char *) &serv_addr, sizeof(serv_addr));
-  portno = (uint16_t) atoi(argv[1]);
+  uint16_t portno = (uint16_t) atoi(argv[1]);
 
   serv_addr.sin_family = AF_INET;
   serv_addr.sin_addr.s_addr = INADDR_ANY;
   serv_addr.sin_port = htons(portno);
 
   /* Ignore pipe signals */
-	// signal(SIGPIPE, SIG_IGN);
+	signal(SIGPIPE, SIG_IGN);
 
   if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR , &option, sizeof(option)) < 0) {
 		perror("ERROR: setsockopt failed");
-    return EXIT_FAILURE;
+    return 0;
 	}
 
   /* Now bind the host address using bind() call.*/
   if (bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0) {
     perror("ERROR: Binding");
-    exit(1);
+    return 0;
   }
 
   /* Now start listening for the clients, here process will
@@ -238,31 +235,6 @@ int main(int argc, char *argv[]) {
 
 		/* Sleep mode for reduce CPU load */
 		sleep(1);
-
-
-    // if (newsockfd < 0) {
-    //   perror("ERROR on accept");
-    //   exit(1);
-    // }
-
-    // /* If connection is established then start communicating */
-    // bzero(buffer, 256);
-    // n = read(newsockfd, buffer, 255);
-
-    // if (n < 0) {
-    //   perror("ERROR reading from socket");
-    //   exit(1);
-    // }
-
-    // printf("Here is the message: %s\n", buffer);
-
-    // /* Write a response to the client */
-    // n = write(newsockfd, "I got your message", 18);
-
-    // if (n < 0) {
-    //   perror("ERROR writing to socket");
-    //   exit(1);
-    // }
   } 
 
   return 0;
