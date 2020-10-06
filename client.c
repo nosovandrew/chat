@@ -10,6 +10,7 @@
 #include <arpa/inet.h>
 #include <pthread.h>
 #include <netdb.h>
+#include <time.h>
 
 #define BUFFER_SZ 256
 
@@ -37,23 +38,32 @@ void catch_ctrl_c_and_exit(int sig) {
 }
 
 void send_msg_handler() {
+  char timeOfSending[10] = {};
   char message[BUFFER_SZ] = {};
-	char buffer[BUFFER_SZ + 32] = {};
+	char buffer[BUFFER_SZ + 42] = {};
 
   while(1) {
   	str_overwrite_stdout();
     fgets(message, BUFFER_SZ, stdin);
     str_trim_lf(message, BUFFER_SZ);
+    
+    /* Get time of sending */
+    time_t rawtime;
+    struct tm * timeinfo;
+    time( &rawtime );
+    timeinfo = localtime( &rawtime );
+    sprintf(timeOfSending, "%02d:%02d", timeinfo->tm_hour, timeinfo->tm_min);
 
     if (strcmp(message, "exit") == 0) {
 			break;
     } else {
-      sprintf(buffer, "%s: %s\n", name, message);
+      sprintf(buffer, "[%s] %s: %s\n", timeOfSending, name, message);
       send(sockfd, buffer, strlen(buffer), 0);
     }
-
+    
+    bzero(timeOfSending, 10);
 		bzero(message, BUFFER_SZ);
-    bzero(buffer, BUFFER_SZ + 32);
+    bzero(buffer, BUFFER_SZ + 42);
   }
   catch_ctrl_c_and_exit(2);
 }
