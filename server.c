@@ -8,7 +8,7 @@
 #include <signal.h>
 #include <string.h>
 
-#define MAX_CLIENTS 29
+#define MAX_CLIENTS 28
 #define BUFFER_SZ 256
 #define NAME_SZ 32
 
