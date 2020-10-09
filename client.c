@@ -144,7 +144,7 @@ int main(int argc, char **argv) {
   /* Checking ctrl + c */
 	while (1){
 		if(flag){
-			printf("\nGood Bye!\n");
+			printf("\nBye!\n");
 			break;
     }
 	}
